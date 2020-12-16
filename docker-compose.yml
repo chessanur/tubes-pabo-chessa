@@ -1,0 +1,82 @@
+# Use postgres/example user/password credentials
+version: '2.2'
+
+#nge reverse ke node js environmentnya
+x-common-variables: &common-variables
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: example
+  POSTGRES_DATABASE: address_db
+  REACT_APP_SERVER_PORT: 3000
+  
+#untuk servicenya
+services:
+  #database
+  postgres:
+    #image untuk database postgresql
+    image: postgres
+    #
+    restart: always
+    # env buat pass utk bisa di refer sama node js
+    environment:
+      POSTGRES_PASSWORD: example
+    # ports untuk database, kiri untuk localhos, kanan container 
+    ports:
+      - 5432:5432
+    # nyimpan database yg sudah dibikin, biar gak ke reset docker-compose down
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+
+  #edit database
+  adminer:
+    image: adminer
+    restart: always
+    # refer ke postgres
+    depends_on: 
+      - postgres
+    ports:
+      - 8080:8080
+
+  server:
+    # build untuk dockerfile server, dia akan ke refer ke dockerfile server
+    build: ./server
+    # refer ke postgres
+    depends_on: 
+      - postgres
+    # port yg digunakan untuk server
+    expose:
+      - 3001
+    # en
+    environment:
+      <<: *common-variables
+      POSTGRES_HOST_IP: postgres
+    ports:
+      - 3001:3001
+    # semua yg disimpan di server bakal ada di app
+    volumes:
+      - ./server:/app
+    links:
+      - postgres
+    command: node index.js
+  
+  client:
+    build: ./client
+    expose:
+      - 3000
+    environment:
+      <<: *common-variables
+      NODE_PATG: src
+    ports:
+      - 3000:3000
+    volumes:
+      - ./client:/app
+    links:
+      - server
+    command: npm start
+    #docker run -t
+    # untuk reactjs mesti interactive sehingga butuh tty: true. yg artinya docker container jadi interactive.
+    tty: true
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
