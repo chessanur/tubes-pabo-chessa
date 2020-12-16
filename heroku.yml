@@ -1,9 +1,0 @@
-build:
-  docker:
-    server: server/Dockerfile
-run:
-  server: npm run start
-release:
-  image: server
-  command: 
-    - npm run migrate up
